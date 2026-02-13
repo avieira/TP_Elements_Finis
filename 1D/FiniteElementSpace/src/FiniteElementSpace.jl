@@ -1,4 +1,5 @@
 module FiniteElementSpace
+using LinearAlgebra, SparseArrays
 
 include("ReferenceInterval.jl")
 
@@ -180,7 +181,6 @@ function plot(fss::Vector{FunctionSpace1D}; num_points_per_element::Int=10)
     Plots.plot(xs, ys; label=labels, legend=true)
 end
 
-using LinearAlgebra, SparseArrays
 export errornorm
 """
     errornorm(f1::FunctionSpace1D, f2::FunctionSpace1D)

@@ -1,5 +1,3 @@
-using SparseArrays
-
 """
     boundary_nodes(fes::FiniteElementSpace1D)
 

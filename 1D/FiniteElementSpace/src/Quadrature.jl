@@ -25,7 +25,7 @@ end
     Approximately integrate `f` on the [`ReferenceInterval`](@ref) using the [`QuadratureRule1D`](@ref) quadrature.
 """
 function integrate(quadrature::QuadratureRule1D, f::Function)
-    return sum(quadrature.weights .* map(f, quadrature.points))
+    return dot(quadrature.weights, map(f, quadrature.points))
 end
 
 """
