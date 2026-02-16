@@ -1,0 +1,207 @@
+\section{Définition des fonctions éléments finis}\label{sec:FESpace}
+Dans cette partie, nous allons définir les méthodes permettant de construire une approximation éléments finis d'une fonction.
+Pour rappel, on construit un sous-espace vectoriel de fonctions en se donnant des fonctions polynomiales par morceaux, de degré $k$ et supportés sur des sous-intervalles $[x_i, x_{i+1}]$, qu'on note $P^{i,j}$. 
+Par suite, on appelle approximation E.F. $\mathbb{P}_k$ les fonctions de la forme $u(x) = \sum_{i,j} u_{i,j} P^{i,j}(x)$. 
+
+Comme on l'a vu en cours, les $P^{i,j}$ sont définis à partir de polynômes $\hat{P}^j$ défini sur un élément de référence $\hat{E}$. 
+Et comme on l'a également vu en TD, ces $\hat{P}^j$ peuvent être définis à partir de n\oe uds $\{\xi_k\}$ dans l'élément de référence à partir desquels on construit les polynômes $\hat{P}^j$ de sorte que $\hat{P}^j(\xi_k) = \delta_{jk}$. 
+Cette dernière égalité nous permet de définir tous les coefficients des monômes des $\hat{P}^j$. On se propose ici d'en déduire un algorithme permettant de définir ces $\hat{P}^j$.
+
+\subsection{Matrice de Vandermonde}
+Avant de généraliser, on va commencer par un exemple. Sur un élément de référence $\hat{E} = [a, b]$, on définit une base de n\oe uds $\hat{\xi}_0 = a$, $\hat{\xi}_m = \frac{1}{2}(a+b)$, $\hat{\xi}_1 = b$.
+À partir de ces trois n\oe uds, on peut définir 3 polynômes $\hat{P}^j$ de degré deux tels que $\hat{P}^j(\hat{\xi}_k) = \delta_{ij}$.
+Notez que l'ensemble de polynômes de degré 2 étant de dimension 3 (il y a 3 coefficients dans $cx^2+bx+a$...), avoir 3 points dans $\hat{E}$ suffit.
+
+Pour $j=0$, l'égalité $\hat{P}^j(\hat{\xi}_k) = c_j\hat{\xi}_k^2 + b_j\hat{\xi}_k + a_j = \delta_{kj}$ s'écrit sous forme de système :
+   \[\begin{pmatrix} 
+      c_0 \hat{\xi}_0^2 + b_0\hat{\xi}_0 + a_0\\
+      c_0 \hat{\xi}_1^2 + b_0\hat{\xi}_1 + a_0\\
+      c_0 \hat{\xi}_2^2 + b_0\hat{\xi}_2 + a_0\\
+   \end{pmatrix} = 
+   \begin{pmatrix}
+      1 & \hat{\xi}_0 & \hat{\xi}_0^2 \\
+      1 & \hat{\xi}_1 & \hat{\xi}_1^2 \\
+      1 & \hat{\xi}_2 & \hat{\xi}_2^2 \\
+   \end{pmatrix}
+   \begin{pmatrix}
+    a_0 \\ b_0 \\ c_0
+   \end{pmatrix} = 
+   \begin{pmatrix}
+    1 \\ 0 \\ 0
+   \end{pmatrix}
+   \]
+
+À partir de là, les coefficients apparaissent de façon évidente :
+\[
+   \begin{pmatrix}
+    a_0 \\ b_0 \\ c_0
+   \end{pmatrix} = 
+   \begin{pmatrix}
+      1 & \hat{\xi}_0 & \hat{\xi}_0^2 \\
+      1 & \hat{\xi}_1 & \hat{\xi}_1^2 \\
+      1 & \hat{\xi}_2 & \hat{\xi}_2^2 \\
+   \end{pmatrix}^{-1}
+   \begin{pmatrix}
+    1 \\ 0 \\ 0
+   \end{pmatrix}
+\]
+
+On peut généraliser à tout $j$, ce qui donne le système matriciel à résoudre : 
+   \[   \begin{pmatrix}
+      1 & \hat{\xi}_0 & \hat{\xi}_0^2 \\
+      1 & \hat{\xi}_1 & \hat{\xi}_1^2 \\
+      1 & \hat{\xi}_2 & \hat{\xi}_2^2 \\
+   \end{pmatrix}
+   \begin{pmatrix}
+    a_0 & a_1 & a_2 \\ 
+    b_0 & b_1 & b_2 \\ 
+    c_0 & c_1 & c_2
+   \end{pmatrix} = 
+   \begin{pmatrix}
+    1 & 0 & 0 \\ 
+    0 & 1 & 0 \\ 
+    0 & 0 & 1 \\ 
+   \end{pmatrix}
+   \]
+
+Vous reconnaissez sans doute la matrice de Vandermonde à gauche. Ce qui a été développé ici pour des polynômes de degré 3 peut aisément se généraliser à des polynômes de degré $n$ en se basant sur $n+1$ points en utilisant la matrice de Vandermonde :
+\[
+   V = \begin{pmatrix}
+      1      & \hat{\xi}_0  & \cdots & \hat{\xi}_0^n \\
+      \vdots & \vdots & \ddots & \vdots \\
+      1      & \hat{\xi}_n  & \cdots & \hat{\xi}_n^n \\
+   \end{pmatrix}
+\]
+Ainsi, la matrice $C$ des coefficients définissant les polynômes $\hat{P}^j$ est définie par $C = V^{-1}$, où $C_{kj}$ est le coefficient du $k$-ème monôme (devant $\xi^{k-1}$) de $\hat{P}^j$. 
+\begin{mdframed} 
+\textbf{Tâche 1} Implémentez la fonction \texttt{VandermondeMatrix} dans \texttt{FiniteElement.jl}. Ignorez pour le moment l'argument \texttt{grad} et considérez-le comme \texttt{false}.
+Une fois qu'un ou une de vos collègues aura fini la tâche 2 de la section 2, terminez d'implémenter \texttt{LagrangeElement1D} en ajoutant l'expression de \texttt{basis\_coeffs} contenant les coefficients des polynômes de base sur un élément fini.
+\end{mdframed}
+\begin{mdframed}[linecolor=ForestGreen] 
+{\color{ForestGreen} \textbf{Test 1}} Écrivez au moins deux tests unitaires permettant de vous assurer que \texttt{VandermondeMatrix} est bien construite.
+\end{mdframed}
+\begin{mdframed}[linecolor=red] 
+\textbf{Remarque} Pour votre culture mathématique, sachez que cette approche basée sur les matrices de Vandermonde construites avec les monomes n'est pas utilisée en pratique. 
+En effet, la matrice construite ainsi a un conditionnement important à mesure qu'on augmente le degré des polynômes. 
+Les méthodes réellement utilisées restent en dehors du programme de ce cours.
+\end{mdframed}
+
+\subsection{Évaluation de la base polynomiale}
+Dans ce code, nous allons avoir besoin de calculer de façon intensive des intégrales. 
+Ces intégrales seront calculées par des formules de quadrature (ça tombe bien, on n'a que des polynômes). 
+Et ces formules de quadrature nécessitent qu'on évalue des fonctions polynômiales en certains points donnés.
+Le fait d'évaluer un ensemble de fonctions en un ensemble de points donnés s'appelle \textit{tabuler}, et c'est ce que nous allons coder ici.
+
+Ici, on va vouloir tabuler la base polynomiale $\{\hat{P}^j\}$ avec un ensemble de points $\{\xi_i\}$ (qui ne sont pas nécessairement les n\oe uds $\hat{\xi}_i$ utilisés pour définir les $\hat{P}^j$ !). 
+Si on note $T_{ij} = \hat{P}^j(\xi_i)$, on obtient:
+\begin{equation} \label{eq:Tij}
+	T_{ij} = \sum_{k=1}^{\text{deg}(\hat{P}^j)} C_{kj} \xi_i^{k-1} = \sum_{k=1}^{\text{deg}(\hat{P}^j)} C_{kj} V(\xi_i)_k = (V(\xi_:)\times C)_{ij}.
+\end{equation}
+\begin{mdframed} 
+\textbf{Tâche 2} Implémentez la fonction \texttt{evaluate\_basis} dans \texttt{FiniteElement.jl} en utilisant \eqref{eq:Tij}, en ignorant encore l'argument \texttt{grad}. 
+Cela peut se faire en littéralement une ligne...
+\end{mdframed}
+
+
+\subsection{Construction des polynômes dérivés}
+Les polynômes que nous avons construits précédemment (à travers leurs coefficients) sont utilisés par la suite pour construire les matrices globales dans la résolution des EDP.
+Cependant, les formulations faibles font parfois apparaitre des dérivées, ce qui demande de calculer également les dérivées des polynômes ${\hat{P}^j}$.
+Revenons à la définition des fonctions E.F. définie sur un seul élément : $u(x) = \sum_{j} u_{j} \hat{P}^{j}(x)$.
+Si on veut calculer leurs dérivées, on doit donc avoir $u'(x) = \sum_{j} u_{j} (\hat{P}^{j})'(x)$
+Il faut donc également tabuler les $(\hat{P}^{j})'$. Or, en revenant à la définition de $T_{ij}$ dans \eqref{eq:Tij}, on voit que le tableau $\{T_{ij}'\}_{ij} = \left\{\frac{d\hat{P}^j}{dx}(\xi_i)\right\}_{ij}$ s'exprime comme :
+
+\begin{equation} \label{eq:Tij_prime}
+	T' = \nabla_{\xi}(V(\xi_:)\times C) = \left(\nabla V(\xi_:)\right) \times C
+\end{equation}
+On doit donc construire la matrice $\nabla V$ définie comme $(\nabla V(\xi_:))_{ij} = \frac{dV_j}{d\xi}(\xi_i)$ (où pour rappel, $V_k(\xi) = \xi^{k-1}$, le $k$-ème monôme). 
+\begin{mdframed} 
+\textbf{Tâche 3} Complétez la fonction \texttt{VandermondeMatrix} dans \texttt{FiniteElement.jl} en utilisant \eqref{eq:Tij_prime} pour le cas où \texttt{grad = true}. 
+Assurez-vous que \texttt{evaluate\_basis} fonctionne toujours avec \texttt{grad = true}. 
+\end{mdframed}
+\begin{mdframed}[linecolor=ForestGreen] 
+{\color{ForestGreen} \textbf{Test 2}} Écrivez au moins deux tests unitaires permettant de vous assurer que \texttt{evaluate\_basis} fonctionne correctement.
+\end{mdframed}
+
+\subsection{Interpolation dans l'élément de référence}
+On reste pour le moment dans un élément de référence. En reprenant l'expression $u(x) = \sum_{j} u_{j} \hat{P}^{j}(x)$, on remarque que comme $\hat{P}^{j}(\hat{\xi}_i) = \delta_{ij}$, on a de suite que $u(\hat{\xi}_i) = \sum_{j} u_{j} \delta_{ij} = u_i$.
+\begin{mdframed} 
+\textbf{Tâche 4} Implémentez la fonction \texttt{interpolate} dans \texttt{FiniteElement.jl}. 
+Cela peut se faire en littéralement une ligne en utilisant la fonction de \texttt{Julia} qui s'appelle \texttt{map}.
+\end{mdframed}
+
+\subsection{Interpolation dans le maillage complet}
+De la même façon que l'interpolation sur l'élément de référence se fait simplement avec des évaluations de fonctions, l'interpolation sur le maillage entier se fera aussi avec des évaluations de fonctions. 
+Pour rappel, à partir de l'expression $u(x) = \sum_{i,j} u_{i,j} P^{i,j}(x)$, on remarque qu'en utilisant le fait que $P^{i,j}(x_{i,j}) = \delta_{ij}$, on a directement $u(x_{i,j}) = u_{i,j}$.
+Il nous faut donc un moyen d'obtenir les n\oe uds $x_{i,j}$. Dit autrement, il nous faut passer de l'élément de référence (les $\xi_i$) à l'élément physique $j$ (les $x_{i,j}$).
+Voir la figure \ref{fig:barycentre} pour une illustration.
+
+Pour cela, plaçons-nous sur l'élément de référence $[-1,1]$. Dans cet élément, les fonctions de base dans $\mathbb{P}_1$ sont $\hat{P}^0_e (\xi) = \frac{1}{2}(1 - \xi)$ et $\hat{P}^1_e(\xi) = \frac{1}{2}(1 + \xi)$. 
+Prenons un n\oe ud $\xi_i \in [-1,1]$. Par définition de l'appartenance à un intervalle, il existe $\lambda_i \in [0,1]$ tels que $\xi_i = \lambda_i (-1) + (1-\lambda_i) (1)$ (on appelle $\lambda_i$ la coordonnée barycentrique de $\xi_i$ dans $[-1,1]$).
+Prenez par exemple $\xi_m = 0$, le milieu de l'intervalle $[-1,1]$. Sa coordonnée barycentrique est $\lambda_m = \frac{1}{2}$.\\
+Prenons maintenant un élément physique $[a,b]$. Au n\oe ud $\xi_i$ dans $[-1,1]$, on associe un n\oe ud $x_i$ dans $[a,b]$ avec la même coordonnée barycentrique $\lambda_i$, c'est-à-dire $x_i = \lambda_i a + (1-\lambda_i) b$.  
+Si on reprend $\xi_m = 0$, de coordonnée barycentrique $\lambda_m = \frac{1}{2}$, il est associé au point $x_m = \frac{1}{2} a +\frac{1}{2} b$, qui est le milieu de $[a,b]$. 
+ 
+Toute la \textit{magie} de cette approche est qu'on peut calculer les $\lambda_i$ à partir de $\hat{P}_e^0$. En effet, remarquez d'abord qu'on a $\hat{P}_e^0(\xi) = 1 - \hat{P}^1_e(\xi)$ et que $\lambda_i = \hat{P}^0_e(\xi_i)$.
+À partir de cette observation, on remarque que $x_i = \hat{P}^0_e(\xi_i) a + \hat{P}^1_e(\xi_i) b = \sum_{j=0}^1 \hat{x}_i \hat{P}_e^j (\xi_i)$ où $\hat{x}_i$ sont les extrêmités de $[a,b]$ (donc $\hat{x}_0 = a$ et $\hat{x}_1 = b$).\\
+Si on reprend l'exemple du point milieu $\xi_m = 0$, $\hat{P}^0_e(\xi_m) = \frac{1}{2} = \lambda_m$. Puis on retrouve bien $x_m =  \sum_{j=0}^1 \hat{x}_i \hat{P}_e^j (\xi_m) = \frac{1}{2}a + \frac{1}{2}b$. 
+
+\begin{figure}[!h]
+\centering
+   \begin{tikzpicture}[scale = 1.5]
+   \draw (-1,0) -- (1,0);
+   \draw (-1, 0.2) -- (-1, -0.2) node[below] {-1};
+   \draw (1, 0.2) -- (1, -0.2) node[below] {1};
+   \draw[color=red] (-1,0) node {$\bullet$};
+   \draw[color=red] (-1,-0.5) node[below] {$\lambda_0 = 0$};
+   \draw[color=red] (0,0) node {$\bullet$};
+   \draw[color=red] (0,-0.2) node[below] {$\lambda_m = \frac{1}{2}$};
+   \draw[color=red] (1,0) node {$\bullet$};
+   \draw[color=red] (1,-0.5) node[below] {$\lambda_1 = 1$};
+   \draw[dashed, color=ForestGreen] (1,0) -- (-1,1) node[above] {$\hat{P}^0_e(\xi)$};
+   \draw[dashed, color=BlueViolet] (-1,0) -- (1,1) node[right] {$\hat{P}^1_e(\xi)$};
+   \draw (-1,0) -- (-1,1.1);
+   \draw (-0.95,0) -- (-1.05,0) node[left] {0};
+   \draw (-0.95,0.5) -- (-1.05,0.5) node[left] {0.5};
+   \draw (-0.95,1) -- (-1.05,1) node[left] {1};
+
+   \draw [-{Latex[length=3mm]}] (1.5,0.2) to [bend left=45] (2.5,0.2);
+
+   \draw (3,0) -- (7,0);
+   \draw (3, 0.2) -- (3, -0.2) node[below] {a};
+   \draw (7, 0.2) -- (7, -0.2) node[below] {b};
+   \draw[color=red] (3,0) node {$\bullet$};
+   \draw[color=red] (3,-0.5) node[below] {$\lambda_0 = 0$};
+   \draw[color=red] (5,0) node {$\bullet$};
+   \draw[color=red] (5,-0.2) node[below] {$\lambda_m = \frac{1}{2}$};
+   \draw[color=red] (7,0) node {$\bullet$};
+   \draw[color=red] (7,-0.5) node[below] {$\lambda_1 = 1$};
+   \draw[dashed, color=ForestGreen] (7,0) -- (3,1) node[left] {$P^0(x)$};
+   \draw[dashed, color=BlueViolet] (3,0) -- (7,1) node[right] {$P^1(x)$};
+
+   \end{tikzpicture}	
+   \caption{Lien sur les barycentres entre élément de référence et élément physique.}	
+   \label{fig:barycentre}
+\end{figure}
+
+Avec toutes ces observations, on peut décrire l'algorithme suivant pour l'interpolation d'une fonction $u$ sur une base E.F. de degré $k$:
+\begin{enumerate}
+	\item On construit une approximation E.F. de degré $k$ d'une fonction $u$ avec tous les coefficients nuls.
+	\item On construit un élément fini de degré 1 sur l'élément de référence. 
+		Avec les polynômes $\mathbb{P}_1$ définis ainsi, on calcule les coordonnées barycentriques $\hat{P}^j_e(\xi_i)$, $j=0,1$ des $k+1$ n\oe uds $\xi_i$ dans l'élément de référence. 
+		Cela forme une matrice $\lambda$\texttt{\_array} de taille $(k+1, 2)$ composée de tous les $\lambda_i$ et $1-\lambda_i$ (matrice qu'on peut calculer avec la fonction \texttt{evaluate\_basis}).
+	\item Pour chaque sous-intervalle dans le maillage :
+	\begin{itemize}
+		\item On récupère les coordonnées du bord de chaque sous-intervalle.
+		\item On calcule les positions des n\oe uds $x_i$ dans le sous-intervalle à partir des coordonnées barycentriques.
+		\item On calcule les coefficients $u(x_i)$ pour chaque n\oe ud $x_i$.
+	\end{itemize}
+\end{enumerate}
+
+\begin{mdframed} 
+\textbf{Tâche 5} Complétez la fonction \texttt{interpolate} dans \texttt{FiniteElementSpace.jl}.
+Une partie de la fonction est déjà implémentée en commentaire, vous devez compléter ce qu'il manque.
+Vous aurez pour cela besoin de comprendre comment s'organise la numérotation des n\oe uds entre l'élément de référence et le sous-intervalle courrant (ou l'élément physique) : pour cela, échangez avec votre collègue s'occupant du maillage.
+\end{mdframed}
+\begin{mdframed}[linecolor=ForestGreen] 
+{\color{ForestGreen} \textbf{Test 3}} Écrivez au moins deux tests unitaires permettant de vous assurer que \texttt{interpolate} est bien construite.
+\end{mdframed}

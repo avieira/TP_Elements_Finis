@@ -1,0 +1,162 @@
+\section{Assemblage de la matrice, résolution du problème E.F.}\label{sec:assembling}
+Dans cette partie, nous allons nous concentrer sur l'assemblage du système linéaire à résoudre nous permettant d'approximer la résolution d'EDP.
+Pour cela, on ne s'intéressera qu'au problème de Helmholtz :
+\[-u'' + u = f,\ \text{ sur } ]a,b[ \]
+avec soit des conditions de Dirichlet soit de Neumann au bord. Cette équation est résolue au sens faible :
+\begin{equation} \label{eq:formul_var}
+	\int_a^b u'v' + uv = \int_a^b fv, \forall v\in V,
+\end{equation}
+avec $V = H^1([a,b])$ si on a des conditions de Neumann en $a$ et $b$ ou $H^1_0([a,b])$ si on a des conditions de Dirichlet.
+
+On va approximer la solution de cette équation par une méthode éléments finis. 
+Pour cela, on se donne un maillage de $[a,b]$ constitué de $N_E+1$ sous-intervalles $[x_i, x_{i+1}]$, $i=0,...,N_E$.
+Sur chaque sous-intervalle $[x_i, x_{i+1}]$, on définit une base de polynômes $P^j_i$, $j = 0,...,N_P$ de degré $N_P$.
+La solution $u$ est approchée par une fonction $u_h$ dans un s.e.v. $V_h$ généré par les $P^j_i$ ; dit autrement, on a $u_h \in V_h$ si pour tout $i$, il existe des $u_{i,j}\in\mathbb{R}$ tels que $u_h(x) = \sum_{j=0}^{N_P} u_{j} P^{j}_i(x)$ $\forall x\in[x_i, x_{i+1}]$. 
+Les indices locaux $(i,k)$, qui désignent le n\oe ud $k$ dans la cellule $i$, sont globalisés dans le maillage : vous pouvez regarder la figure \ref{fig:num_globale} et demander à votre collègue s'occupant du maillage de vous expliquer.
+
+Si on remplace $V$ par $V_h$ dans \eqref{eq:formul_var}, on obtient à gauche:
+\[\begin{aligned} 
+	\int_a^b u_h' v_h' + u_h v_h &= \sum_{i=0}^{N_E} \int_{x_i}^{x_{i+1}} \sum_{j=0}^{N_P} \sum_{j=0}^{N_P} \left(u_{i,j} (P^j_i)'\right)\sum_{k=0}^{N_P} \left(v_{i,k} (P^k_i)'\right) + \left(u_{i,j} P^j_i\right)\sum_{k=0}^{N_P} \left(v_{i,k} P^k_i\right)\\
+				    &=  \sum_{j=0}^{N_P} \sum_{k=0}^{N_P} \left(u_{i,j} v_{i,k} \left(\sum_{i=0}^{N_E} \int_{x_i}^{x_{i+1}} \left((P^j_i)'(P^k_i)' + P^j_iP^k_i\right)\right)\right).
+\end{aligned}\]
+À droite, on obtient de la même manière :
+\[\int_a^b fv = \sum_{k=0}^{N_P} v_{i,k} \left(\sum_{i=0}^{N_E} \int_{x_i}^{x_{i+1}} fP^k_i\right)\]
+
+Si on définit la matrice $A_{(i,k)(i,j)} = \sum_{i=0}^{N_E}\int_{x_i}^{x_{i+1}}\left((P^j_i)'(P^k_i)' + P^j_iP^k_i\right)$ et le vecteur $\mathbf{b}_{(i,k)} = \sum_{i=0}^{N_E}\int_{x_i}^{x_{i+1}} fP^k_i$, on voit que l'égalité \eqref{eq:formul_var} dans $V_h$ devient, en posant $\mathbf{u} = \{u_{i,j}\}_{(i,j)}$, $\mathbf{v} =  \{v_{i,k}\}_{(i,k)}$:
+	\[\langle A\mathbf{u}, \mathbf{v}\rangle = \langle \mathbf{b}, \mathbf{v}\rangle,\ \forall \mathbf{v} \in \mathbb{R}^{N_P},\]
+ce qui équivaut à devoir résoudre le problème linéaire $A\mathbf{u} = \mathbf{b}$. 
+
+Tout l'objectif de cette section va être de construire de façon efficace la matrice $A$ et le vecteur $\mathbf{b}$. 
+
+\subsection{Intégration numérique}
+Une grande partie du travail consistera à calculer des intégrales. 
+Ces intégrales seront calculées (ou approximées) par des méthodes de quadrature et un changement de variable.
+
+Supposons qu'on souhaite calculer l'intégrale sur un intervalle $[x_i, x_{i+1}]$ d'une fonction $f$. On va pour cela se ramener à un élément de référence $[\xi_0, \xi_1]$ en passant par une application $\tau_i : [\xi_0,\xi_1] \rightarrow [x_i, x_{i+1}]$ et faire un changement de variable:
+\[\int_{x_i}^{x_{i+1}} f(x) dx = \int_{\xi_0}^{\xi_1} f(\tau_i(\xi)) \tau_i'(\xi) d\xi.\]
+Or, comme on l'a vu en TD, $\tau_i$ est une application affine. Sa dérivée est donc une constante qui vaut $\tau_i'(\xi) = \frac{x_{i+1}-x_i}{\xi_1-\xi_0} = \tau_i'$. Ainsi, on doit simplement calculer :
+	\[\int_{x_i}^{x_{i+1}} f(x) dx =  \tau_i' \int_{\xi_0}^{\xi_1} f(\tau_i(\xi)) d\xi.\]
+Supposons maintenant que $f$ soit une approximation éléments finis $\mathbb{P}_k$, c'est-à-dire que sur $[x_i, x_{i+1}]$, il existe des fonctions polynomiales $P_i^j$ tels que $f(x) = \sum_{j=0}^{k} f_j P_i^j(x)$, $\forall x\in [x_i, x_{i+1}]$. 
+Comme on l'a vu en TD, ces $P_i^j$ sont définis à travers l'élément de référence $[\xi_0, \xi_1]$, sur lequel on définit des polynômes $\hat{P}^j$, puis on pose $P^j_i = \hat{P}^j \circ (\tau_i)^{-1}$ (ou de la même façon, $\hat{P}^j = P^j_i \circ \tau_i$).
+En utilisant cela, le calcul de l'intégrale devient :
+\[\begin{aligned} 
+	\int_{x_i}^{x_{i+1}} f(x) dx &=  \tau_i' \int_{\xi_0}^{\xi_1} \sum_{j=0}^k f_j P^j_i(\tau_i(\xi)) d\xi \\
+					&=  \sum_{j=0}^k \tau_i' f_j \int_{\xi_0}^{\xi_1} P^j_i(\tau_i(\xi)) d\xi \\
+					&= \sum_{j=0}^k \tau_i' f_j \int_{\xi_0}^{\xi_1} \hat{P}^j(\xi) d\xi.
+\end{aligned}\]
+
+Il ne reste donc plus qu'à calculer l'intégrale des $\hat{P}^j$ ! Cela se fait avec une règle de quadrature : on évalue $\hat{P}^j$ en un ensemble de points $\xi_\ell$ avec des poids $\omega_\ell$, pour $\ell = 0,...,d$ où $d$ est le degré de la quadrature.
+Pour que la quadrature soit exacte pour les polynômes $\hat{P}^j$ de degré $k$, on doit prendre $d=k$.
+Ainsi, le calcul de l'intégrale devient : 
+\begin{equation} \label{eq:quadrature_f}
+	\int_{x_i}^{x_{i+1}} f(x) dx = \sum_{j=0}^k \sum_{\ell = 0}^k \tau_i' f_j \omega_\ell \hat{P}^j(\xi_\ell).
+\end{equation}
+
+\begin{mdframed} 
+\textbf{Tâche 1} Écrivez la fonction \texttt{jacobian} dans \texttt{Mesh1D.jl}, qui retourne la valeur de $\tau_i'$ pour le sous-intervalle $i=$\texttt{i\_cell}.
+Vous aurez besoin pour cela de la fonction \texttt{adjacency} (regardez sa documentation). 
+Pensez à vous assurer que $x_{i+1}-x_i >0$ (ou utilisez un \texttt{abs}).
+Étant donné que la valeur $\xi_1-\xi_0$ est la même pour tous les sous-intervalle (cela ne dépend que de l'élément de référence qui est toujours le même), vous pouvez précalculer cette valeur dans l'attribut \texttt{scaling} dans le constructeur de \texttt{Mesh1D}.
+\end{mdframed}
+\begin{mdframed} 
+\textbf{Tâche 2} Complétez la fonction \texttt{integrate} dans \texttt{FiniteElementSpace.jl}.
+Vous pouvez vous inspirer que la fonction \texttt{errornorm} dans le même fichier, qui calcule $\|f_1-f_2\|_{L^2}$ (et donc, calcule une intégrale...).
+\end{mdframed}
+\begin{mdframed}[linecolor=ForestGreen] 
+{\color{ForestGreen} \textbf{Test 1}} Écrivez au moins un test unitaire permettant de vous assurer que \texttt{integrate} fonctionne correctement.
+\end{mdframed}
+
+\subsection{Assemblage du second membre $\mathbf{b}$}
+On repart de l'expression de $\mathbf{b}_{(i,k)} = \sum_{i=0}^{N_E}\int_{x_i}^{x_{i+1}} fP^k_i$. 
+On notera $N$ l'indice global correspondant à l'indice local $(i,k)$ (voir encore la figure \ref{fig:num_globale}).
+Sur chaque sous-intervalle $[x_i, x_{i+1}]$, on décompose $f$ sur la base de polynômes $P^j_i$ : $\forall x\in [x_i, x_{i+1}]$, $f(x) = \sum_{j=0}^k f_j^i P^j_i(x)$.
+En l'introduisant dans $\mathbf{b}_{N}$, on obtient:
+	\[\mathbf{b}_{N} = \sum_{i=0}^{N_E} \sum_{j=0}^{N_P} f_j^i \int_{x_i}^{x_{i+1}} P^j_i P^k_i.\]
+L'intégrale $\int_{x_i}^{x_{i+1}} P^j_i P^k_i$ sera calculée comme dans \eqref{eq:quadrature_f} en utilisant une quadrature de degré $2N_P$ (qui sera exacte, vu que les $P^j_i$ sont des polynômes de degré $N_P$ !). Ainsi on aura :
+		\[\mathbf{b}_N = \sum_{i=0}^{N_E}\left[\sum_{j=0}^{N_P} f_j^i \int_{x_i}^{x_{i+1}} P^j_i P^k_i\right] = \sum_{i=0}^{N_E} \left[\sum_{\ell = 0}^{2N_P} \tau_i'  \omega_\ell \hat{P}^k(\xi_\ell) \left(\sum_{j=0}^{N_P}f_j^i \hat{P}^j(\xi_\ell)\right)\right]\]
+
+Avec cette formule, un algorithme se dégage : on va parcourir les sous-intervalles les uns après les autres, et ajouter au fur et à mesure les contributions entre crochets aux $\mathbf{b}_N$. L'algorithme est décrit comme suit:
+\begin{enumerate}
+	\item On part d'un vecteur nul $\mathbf{b} = 0$.
+	\item Pour chaque sous-intervalle $c$ :
+	\begin{enumerate}
+		\item Pour chaque n\oe ud $i$ dans le sous-intervalle
+		\begin{enumerate}
+			\item Trouver dans la numérotation globale l'indice $N$ correspondant au n\oe ud $i$ dans le sous-intervalle $c$.
+			\item Pour tout $\ell = 0, ..., N_P$, on calcule $g_\ell = \sum_{j=0}^{N_P}f_j^c \hat{P}^j(\xi_\ell)$
+			\item On calcule $Z = \sum_{\ell = 0}^{2N_P} \omega_\ell \hat{P}^i(\xi_\ell) g_\ell$.
+			\item On l'ajoute à $\mathbf{b}_N$ : $\mathbf{b}_N = \mathbf{b}_N + \tau_c' Z$
+		\end{enumerate}
+	\end{enumerate}
+\end{enumerate}
+
+\begin{mdframed} 
+\textbf{Tâche 3} Complétez la fonction \texttt{build\_rhs} dans \texttt{Helmholtz.jl}.
+Identifiez pour cela comment calculer les fonctions $\hat{P}^j(\xi_\ell)$ avec la fonction \texttt{evaluate\_basis}.
+Les $g_\ell$ peuvent se calculer avec un produit matrice/vecteur. 
+$Z$ se calcule comme un produit scalaire avec un produit terme à terme de vecteurs.
+Un produit scalaire se calcule avec \texttt{dot} (dans la bibliothèque \texttt{LinearAlgebra}), un produit terme à terme se calcule en utilisant \texttt{.*} entre deux vecteurs.
+\end{mdframed}
+
+\subsection{Assemblage de la matrice $A$}
+De la même façon, on va construire la matrice $A$ sous-intervalle par sous-intervalle. 
+Ici, on a directement l'expression $A_{(i,k)(i,j)} = \sum_{i=0}^{N_E} \int_{x_i}^{x_{i+1}}\left((P^j_i)'(P^k_i)' + P^j_iP^k_i\right)$.
+À nouveau, on se ramène au calcul sur l'élément de référence $[\xi_0, \xi_1]$. Cependant, il faut faire attention avec les dérivées : comme on l'a vu en TD, l'intégration devient
+\[\begin{aligned} 
+	\int_{x_i}^{x_{i+1}}(P^j_i)'(x)(P^k_i)'(x) dx &= \int_{\xi_0}^{\xi_1} \frac{(\hat{P}^j_i)'(\xi)}{\tau_i'(\xi)}\frac{(\hat{P}^k_i)'(\xi)}{\tau_i'(\xi)} \tau_i'(\xi) d\xi\\
+							&= \frac{1}{\tau_i'} \int_{\xi_0}^{\xi_1} (\hat{P}^j_i)'(\xi)(\hat{P}^k_i)'(\xi) d\xi.
+\end{aligned}\]
+
+Ainsi, en utilisant encore une fois une formule de quadrature, on définit :
+\[a_{ijk}' = \int_{x_i}^{x_{i+1}}(P^j_i)'(x)(P^k_i)'(x) dx = \sum_{\ell = 0}^{2N_P} \frac{\omega_\ell}{\tau_i'} (\hat{P}^j)'(\xi_\ell) (\hat{P}^k)'(\xi_\ell).\]
+De même, on définit :
+\[a_{ijk} = \int_{x_i}^{x_{i+1}}P^j_i(x)P^k_i(x) dx = \sum_{\ell = 0}^{2N_P} \tau_i' \omega_\ell \hat{P}^j(\xi_\ell) \hat{P}^k(\xi_\ell).\]
+On notera $N$ l'indice global correspondant à $(i,k)$ et $M$ l'indice global correspondant à $(i,j)$. Ainsi on a établi la formule :
+	\[A_{NM} = \sum_{i=0}^{N_E} \left( a_{ijk}' + a_{ijk} \right).\]
+L'algorithme se développe de façon analogue à $\mathbf{b}$ : 
+\begin{enumerate}
+	\item On part d'une matrice nulle $A = 0$.
+	\item Pour chaque sous-intervalle $c$ :
+	\begin{enumerate}
+		\item Pour chaque n\oe ud $i$ dans le sous-intervalle
+		\begin{enumerate}
+			\item Trouver dans la numérotation globale l'indice $N$ correspondant au n\oe ud $i$ dans le sous-intervalle $c$.
+			\item Pour chaque n\oe ud $j$ dans le sous-intervalle
+			\begin{enumerate}
+				\item Trouver dans la numérotation globale l'indice $M$ correspondant au n\oe ud $j$ dans le sous-intervalle $c$.
+				\item Calculer $a_{cij}$.
+				\item Calculer $a_{cij}'$
+				\item On l'ajoute à $A_{NM}$ : $A_{NM} = A_{NM} + a_{cij} + a_{cij}'$
+			\end{enumerate}
+		\end{enumerate}
+	\end{enumerate}
+\end{enumerate}
+
+\begin{mdframed} 
+\textbf{Tâche 4} Complétez la fonction \texttt{build\_lhs} dans \texttt{Helmholtz.jl}.
+Remarquez que vous pouvez calculer en amont les produits $\hat{P}^j(\xi_\ell)\hat{P}^k(\xi_\ell)$ qui ne dépendent pas de la cellule $c$.
+Vous pouvez faire de même avec les produits des dérivées.
+\end{mdframed}
+
+\subsection{Conditions de Dirichlet}
+Si on se contente de conditions de Neumann homogènes, l'assemblage peut en rester là. Si on souhaite des conditions de Dirichlet homogènes, il y a un peu plus de travail.
+On doit d'abord identifier les indices des n\oe uds sur le bord du domaine. Nous vous fournissons une fonction qui fait cela : \texttt{boundary\_nodes}, dans \texttt{Helmholtz.jl}.
+Pour réussir à avoir des conditions de Dirichlet homogène, il y a deux approches possibles :
+\begin{enumerate}
+	\item Approche par élimination : on élimine les lignes et les colonnes correspondants aux n\oe uds au bord du domaine : pour chaque indice $j$ correspondant à n\oe ud au bord du domaine, $A_{j:} = 0$ et $A_{:j}=0$.
+		Après, les indices diagonaux de ces n\oe uds sont mis à 1 : $A_{jj} = 1$.
+		Sur le membre de droite, on rentre les conditions de Dirichlet homogènes : $\mathbf{b}_j = 0$.
+	\item Approche par pénalisation : on pénalise les éléments diagonaux pour les obliger à être 0 (ou presque). 
+		On prend un nombre $\Lambda$ très grand (par exemple $\Lambda = 10^{20}$) et pour chaque indice $j$ correspondant à n\oe ud au bord du domaine, $A{jj} = A_{jj} + \Lambda$.
+\end{enumerate}
+
+\begin{mdframed} 
+\textbf{Tâche 5} Complétez les fonctions \texttt{apply\_dirichlet\_elimination} et \\ \texttt{apply\_dirichlet\_penalization} dans \texttt{Helmholtz.jl}.
+\end{mdframed}
+
+\subsection{Résolution de l'équation}
+À la fin du fichier \texttt{launch\_Helmholtz.jl}, vous avez un exemple de comment lancer la résolution de l'équation de Helmholtz.
+Pour lancer l'exemple, vous pouvez soit taper dans un terminal \texttt{julia launch\_Helmholtz.jl} soit d'abord lancer \texttt{Julia} puis lancer l'instruction \texttt{include("launch\_Helmholtz.jl")}.
+\begin{mdframed}[linecolor=ForestGreen] 
+{\color{ForestGreen} \textbf{Test 2}} En partant de l'exemple \texttt{launch\_Helmholtz.jl}, écrivez au moins deux tests fonctionnels permettant de tester la résolution de l'équation de Helmholtz.
+\end{mdframed}

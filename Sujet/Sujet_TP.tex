@@ -1,0 +1,121 @@
+\PassOptionsToPackage{dvipsnames}{xcolor}
+\documentclass[12pt,english]{article}
+\usepackage[a4paper]{geometry}
+\usepackage{enumerate}
+\usepackage{tikz} % tikz pour dessiner en latex
+\usepackage[utf8]{inputenc} 		% encodage des caracteres utilise (pour les caracteres accentues) -- non utilise ici.
+%\usepackage[latin1]{inputenc} 		% autre encodage
+%\usepackage[french]{babel}		% pour une mise en forme "francaise"
+\usepackage[french]{babel}		% pour une mise en forme "francaise"
+%\usepackage[frenchb,english]{babel}
+\usepackage[T1]{fontenc}
+\usepackage{latexsym,amssymb,amsfonts,amsmath,amsthm}
+	% pour les maths
+\usepackage{graphicx}			% pour inclure des graphiques
+\usepackage{mdframed}
+%\usepackage[standard]{ntheorem}
+\usepackage{comment}
+%\usepackage{amsthm}
+% \usepackage{amscd}
+\usepackage{amssymb}
+\usepackage{amsthm}
+% \usepackage{latexsym}
+% \usepackage{mathrsfs}
+% \usepackage{upgreek}
+\usepackage{amsmath}
+\usepackage{amsfonts}
+% \usepackage{amssymb}
+\usepackage{hyperref}			% si vous souhaitez que les references soient des hyperliens
+%\usepackage{comment}
+%\usepackage{color}			% pour ajouter des couleurs dans vos textes
+\usepackage[dvipsnames]{xcolor}
+\usepackage{caption}
+\usepackage{subcaption}
+\usetikzlibrary{arrows,arrows.meta,calc,shapes,decorations.pathreplacing}
+\usetikzlibrary{decorations.pathmorphing}
+\usetikzlibrary{shapes,arrows}
+\usetikzlibrary{patterns,patterns.meta}
+
+\newcommand\TODO[1]{\textcolor{red}{#1}}
+\DeclareMathOperator{\tr}{tr}
+\DeclareMathOperator{\diver}{div}
+\newcommand{\Id}{\mathrm{I}}
+\newtheorem{theorem}{Theorem}
+\newtheorem{prop}{Proposition}
+\newtheorem{remark}{Remark}
+
+\renewcommand{\vec}[1]{{\bold #1}}
+\def\vect#1{\overrightarrow{#1}}
+
+\renewcommand{\d}{~\mathrm{d}}
+
+\tikzset{cross/.style={cross out, draw=black, minimum size=2*(#1-\pgflinewidth), inner sep=0pt, outer sep=0pt}, cross/.default={1pt}}
+
+\title{TP : implémentation d'une méthode E.F.}
+\author{\begin{minipage}{\textwidth}\centering Alexandre Vieira, Laurent Monasse\\
+    \small{email: \texttt{alexandre.vieira@inria.fr,
+        laurent.monasse@inria.fr}}
+\end{minipage}
+}
+  
+
+\begin{document}
+\maketitle						% Genere le titre
+
+\section{Objectifs et mise en place}
+Ce TP a pour objectif de vous faire pratiquer le développement effectif de la résolution de certaines EDP par une méthode d'éléments finis. Dans le cadre de ce TP, on ne s'intéressera qu'à la dimension 1 et aux éléments finis de Lagrange. 
+
+\paragraph{Organisation, méthodologie, évaluation}
+Ce travail sera à faire par groupes de 4 personnes. 
+Il vous sera demandé de rendre vos travaux pour le 13 mars 23h59. Une session de \textit{code review} aura ensuite lieu le 16 mars où nous commenterons votre code et vous poserons des questions sur votre travail.
+Il est attendu que vous vous répartissiez les différentes tâches à faire entre membres du groupe, selon une méthodologie de travail qui vous sera demandé lors de la code review.
+Toute approche de méthodologie de gestion de projets (définition des rôles, répartition des tâches, méthode de suivi des avancées, utilisation d'outils de collaboration...) sera appréciée par vos évaluateurs.
+Si vous cherchez des pistes sur ce sujet, n'hésitez pas à venir en discuter après les TD.
+
+%\paragraph{Récupération du code}
+%Le code est stocké dans le répertoire git suivant : (LIEN GIT). 
+%Pour chaque groupe, il vous sera demandé de créer un fork et de travailler dans ce dernier. 
+%Une fois le fork créé, vous pourrez récupérer le code sur votre machine en utilisant la commande \texttt{git clone <lien git>}. Là encore, n'hésitez pas à venir en parler en TD si vous n'arrivez pas à récupérer le code.
+
+\paragraph{Activation de l'environnement}
+Le code est écrit en Julia et exploite les environnements afin de créer des codes portables entre différentes machines.
+Lors de vos développements, placez-vous depuis un terminal dans le répertoire \texttt{1D}, puis lancez \texttt{julia}.
+Enfoncez alors \texttt{]} pour vous mettre en mode \texttt{pkg}, et activez l'environnement avec la commande "\texttt{activate .}" (le point est nécessaire). 
+L'environnement de ce répertoire sera alors actif.
+L'ensemble du package peut-être importé en utilisant \texttt{using FiniteElementSpace}.
+
+\paragraph{Développement}
+Pour le développement de ce projet, nous vous conseillons d'utiliser l'extension Julia que vous trouverez dans VSCode. Vous aurez ainsi accès à un interpréteur Julia intégré (avec la commande \texttt{Alt+J, Alt+O}) ainsi qu'une révision automatique du code à chaque modification enregistrée - ce qui vous permet de tout de suite tester vos modifications sans avoir à relancer l'interpréteur Julia et recompiler votre code.
+
+\paragraph{Documentation}
+Toutes les fonctions et structures du code sont documentées. Vous trouverez ces documentations directement dans le code, au-dessus des signatures, ou alors depuis l'interpréteur \texttt{julia} en tapant \texttt{?} puis le nom de la fonction ou structure.
+
+\paragraph{Détail des tâches demandées}
+Nous allons vous demander différentes tâches, réparties en 3 thèmes. Ces thèmes seront détaillés dans les sections suivantes. Elles peuvent servir à vous répartir les tâches à faire, mais vous pouvez également décider de vous répartir autrement les tâches, du moment que vous gardez la charge de travail équitable entre les différents membres du groupe.
+\begin{enumerate}
+	\item Une première tâche consistera à faire les liens nécessaires entre le maillage et les coefficients définissant une fonction éléments finis. 
+Le travail ici consistera principalement à faire les liens corrects entre des numérotations locales (sur un élément de référence) et globales (sur le maillage). Les instructions se trouvent p.\pageref{sec:mesh}
+	\item Une deuxième tâche consistera à construire les méthodes permettant de définir un élément fini puis un espace de fonctions définis par des éléments finis. 
+Il faudra ici définir proprement les méthodes d'interpolation et comment exploiter les informations de l'élément de référence et du maillage. Les instructions commencent p.\pageref{sec:FESpace}
+	\item La dernière tâche concerne l'assemblage. Nous le ferons ici sur une équation de Helmholtz ($-u'' + u = f$). 
+Il faudra ici assembler à la fois la matrice globale et inclure les conditions au bord dans la résolution des équations. Les instructions commencent p.\pageref{sec:assembling}
+\end{enumerate}
+À travers les différentes tâches, nous vous demanderons de développer également des tests. Les tests unitaires sont à ajouter dans le répertoire \texttt{test} afin de pouvoir être lancés automatiquement (voir les explications p.\pageref{sec:tests}). Les tests fonctionnels (pour la dernière partie) sont à développer dans des fichiers de scripts à la racine du projet (comme pour \texttt{launch\_Helmholtz.jl}).
+
+\include{meshing}
+\include{FESpace}
+\include{assembling}
+
+\newpage
+\section{Explication des tests}\label{sec:tests}
+Comme vous pouvez le voir dans le répertoire, les tests peuvent être aggrégés dans le répertoire \texttt{test}. 
+Ce répertoire permet de lancer automatiquement tous les tests que vous avez rédigé ; quelques exemples vous ont été laissés pour donner une idée de comment les organiser.
+Pour lancer tous vos tests unitaires, suivez la procédure suivante :
+\begin{itemize}
+	\item Placez vous dans le répertoire \texttt{FiniteElementSpace} et lancez \texttt{Julia} (ou alternativement, depuis \texttt{Julia}, mettez vous en mode shell avec le point virgule \texttt{;} puis naviguez jusqu'au répertoire \texttt{FiniteElementSpace}).
+	\item Activez l'environnement local : tapez le crochet fermant \texttt{]} pour passer en mode \texttt{pkg} et tapez "\texttt{activate .}" (le point est nécessaire).
+	\item Toujours en mode \texttt{pkg}, tapez \texttt{test}. Vous lancerez alors automatiquement tous les tests listés dans \texttt{runtests.jl}, et vous obtiendrez un rapport des tests réussis ou échoués.
+\end{itemize}
+La fonction \texttt{test} vient aussi avec certaines options, telles que \texttt{--coverage} qui vous permet de voir la couverture de code testé.
+
+\end{document}
