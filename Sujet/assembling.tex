@@ -16,7 +16,7 @@ Les indices locaux $(i,k)$, qui désignent le n\oe ud $k$ dans la cellule $i$, s
 
 Si on remplace $V$ par $V_h$ dans \eqref{eq:formul_var}, on obtient à gauche:
 \[\begin{aligned} 
-	\int_a^b u_h' v_h' + u_h v_h &= \sum_{i=0}^{N_E} \int_{x_i}^{x_{i+1}} \sum_{j=0}^{N_P} \sum_{j=0}^{N_P} \left(u_{i,j} (P^j_i)'\right)\sum_{k=0}^{N_P} \left(v_{i,k} (P^k_i)'\right) + \left(u_{i,j} P^j_i\right)\sum_{k=0}^{N_P} \left(v_{i,k} P^k_i\right)\\
+	\int_a^b u_h' v_h' + u_h v_h &= \sum_{i=0}^{N_E} \int_{x_i}^{x_{i+1}} \sum_{j=0}^{N_P} \left(u_{i,j} (P^j_i)'\right)\sum_{k=0}^{N_P} \left(v_{i,k} (P^k_i)'\right) + \sum_{j=0}^{N_P} \left(u_{i,j} P^j_i\right)\sum_{k=0}^{N_P} \left(v_{i,k} P^k_i\right)\\
 				    &=  \sum_{j=0}^{N_P} \sum_{k=0}^{N_P} \left(u_{i,j} v_{i,k} \left(\sum_{i=0}^{N_E} \int_{x_i}^{x_{i+1}} \left((P^j_i)'(P^k_i)' + P^j_iP^k_i\right)\right)\right).
 \end{aligned}\]
 À droite, on obtient de la même manière :
@@ -56,11 +56,11 @@ Ainsi, le calcul de l'intégrale devient :
 \textbf{Tâche 1} Écrivez la fonction \texttt{jacobian} dans \texttt{Mesh1D.jl}, qui retourne la valeur de $\tau_i'$ pour le sous-intervalle $i=$\texttt{i\_cell}.
 Vous aurez besoin pour cela de la fonction \texttt{adjacency} (regardez sa documentation). 
 Pensez à vous assurer que $x_{i+1}-x_i >0$ (ou utilisez un \texttt{abs}).
-Étant donné que la valeur $\xi_1-\xi_0$ est la même pour tous les sous-intervalle (cela ne dépend que de l'élément de référence qui est toujours le même), vous pouvez précalculer cette valeur dans l'attribut \texttt{scaling} dans le constructeur de \texttt{Mesh1D}.
+Étant donné que la valeur $\xi_1-\xi_0$ est la même pour tous les sous-intervalles (cela ne dépend que de l'élément de référence qui est toujours le même), vous pouvez précalculer cette valeur dans l'attribut \texttt{scaling} dans le constructeur de \texttt{Mesh1D}.
 \end{mdframed}
 \begin{mdframed} 
 \textbf{Tâche 2} Complétez la fonction \texttt{integrate} dans \texttt{FiniteElementSpace.jl}.
-Vous pouvez vous inspirer que la fonction \texttt{errornorm} dans le même fichier, qui calcule $\|f_1-f_2\|_{L^2}$ (et donc, calcule une intégrale...).
+Vous pouvez vous inspirer de la fonction \texttt{errornorm} dans le même fichier, qui calcule $\|f_1-f_2\|_{L^2}$ (et donc, calcule une intégrale...).
 \end{mdframed}
 \begin{mdframed}[linecolor=ForestGreen] 
 {\color{ForestGreen} \textbf{Test 1}} Écrivez au moins un test unitaire permettant de vous assurer que \texttt{integrate} fonctionne correctement.
